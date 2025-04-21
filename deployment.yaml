@@ -12,6 +12,7 @@ spec:
       labels:
         app: hello-world
     spec:
+      serviceAccountName: jenkins-controller
       containers:
         - name: hello-world-container
           image: us-central1-docker.pkg.dev/onyx-codex-274605/hello-world-repo/hello-world:latest # Replace with your image
