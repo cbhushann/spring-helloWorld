@@ -13,7 +13,7 @@ def serviceFile = 'service.yaml' // Adjust if your service file has a different 
 def googleCredentialsId = 'google-artifact-registry-key' // Jenkins Credential ID for GAR JSON key
 def kubeconfigCredentialsId = 'kubeconfig-credentials' // Jenkins Credential ID for kubeconfig
 def kubernetesNamespace = 'default' // Change if deploying to a different namespace
-def mavenToolName = 'Maven4'
+// def mavenToolName = 'Maven4'
 // --- End Configuration ---
 
 pipeline {
@@ -41,7 +41,9 @@ pipeline {
                 echo 'Building Spring Boot application...'
                 // Assuming Maven is used based on pom.xml
                 // Use a Maven tool configured in Jenkins or ensure mvn is in PATH
-                sh "${MVN_HOME}/bin/mvn clean package -DskipTests"
+//                 sh "${MVN_HOME}/bin/mvn clean package -DskipTests"
+                sh 'chmod +x gradlew'
+                sh './gradlew build -x test'
             }
         }
 
