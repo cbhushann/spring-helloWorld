@@ -53,15 +53,21 @@ pipeline {
         stage('Install gcloud') {
             steps {
                 echo "Installing Google Cloud SDK to ${env.GCLOUD_INSTALL_DIR}..."
-                // Download the installer script
-                sh 'curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-linux-x86_64.tar.gz'
+                // Download the installer script, follow redirects (-L), fail on server errors (-f), save with original name (-O)
+                sh 'curl -fLO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-linux-x86_64.tar.gz'
+
+                // --- DEBUGGING: Add this line temporarily to see what was downloaded ---
+                echo "--- Content of downloaded file (first few lines): ---"
+                sh 'head -n 10 google-cloud-sdk-linux-x86_64.tar.gz || true' // Show first 10 lines, ignore error if file is smaller
+                echo "--- End of file content ---"
+                // --- END DEBUGGING ---
+
                 // Extract it to the home directory (creates google-cloud-sdk folder)
-                // Using tar directly avoids running an external install script
                 sh 'tar -xzf google-cloud-sdk-linux-x86_64.tar.gz -C $HOME'
-                // Optional: Run the installer script for path updates etc., if needed, but often just extracting is enough
-                // sh "${env.GCLOUD_INSTALL_DIR}/install.sh --quiet --path-update true --usage-reporting false"
+
                 // Verify installation by checking the version (uses the full path)
                 sh "${env.GCLOUD_PATH}/gcloud --version"
+
                 // Clean up the downloaded archive
                 sh 'rm google-cloud-sdk-linux-x86_64.tar.gz'
             }
