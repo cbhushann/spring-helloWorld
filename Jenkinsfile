@@ -54,8 +54,8 @@ pipeline {
             steps {
                 echo "Installing Google Cloud SDK to ${env.GCLOUD_INSTALL_DIR}..."
                 // Download the installer script, follow redirects (-L), fail on server errors (-f), save with original name (-O)
-                sh 'curl -fLO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-linux-x86_64.tar.gz'
-
+//                 sh 'curl -fLO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-linux-x86_64.tar.gz'
+                sh 'curl -fLO https://dl.google.com/google-cloud-sdk/latest/google-cloud-sdk-linux-x86_64.tar.gz'
                 // --- DEBUGGING: Add this line temporarily to see what was downloaded ---
                 echo "--- Content of downloaded file (first few lines): ---"
                 sh 'head -n 10 google-cloud-sdk-linux-x86_64.tar.gz || true' // Show first 10 lines, ignore error if file is smaller
