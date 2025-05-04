@@ -52,8 +52,8 @@ pipeline {
                 echo "Building Docker image: ${env.FULL_IMAGE_NAME}"
                 // Authenticate Docker with Google Artifact Registry
                 withCredentials([file(credentialsId: googleCredentialsId, variable: 'GCLOUD_KEY_FILE')]) {
-                    sh "gcloud auth activate-service-account --key-file=${GCLOUD_KEY_FILE}"
-                    sh "gcloud auth configure-docker ${dockerRegistry} --quiet"
+                    sh 'gcloud auth activate-service-account --key-file=${GCLOUD_KEY_FILE}'
+                    sh 'gcloud auth configure-docker ${dockerRegistry} --quiet'
                 }
                 // Build the image
                 sh "docker build -t ${env.FULL_IMAGE_NAME} ."
