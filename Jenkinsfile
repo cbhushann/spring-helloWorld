@@ -25,6 +25,8 @@ pipeline {
         FULL_IMAGE_NAME = "${imageName}:${IMAGE_TAG}"
         // Ensure gcloud doesn't prompt for input
         CLOUDSDK_CORE_DISABLE_PROMPTS = '1'
+        GCLOUD_INSTALL_DIR = "$HOME/google-cloud-sdk"
+        GCLOUD_PATH = "${GCLOUD_INSTALL_DIR}/bin"
         //MVN_HOME = tool mavenToolName
     }
 
@@ -47,13 +49,32 @@ pipeline {
             }
         }
 
+        // --- NEW STAGE TO INSTALL GCLOUD ---
+        stage('Install gcloud') {
+            steps {
+                echo "Installing Google Cloud SDK to ${env.GCLOUD_INSTALL_DIR}..."
+                // Download the installer script
+                sh 'curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-linux-x86_64.tar.gz'
+                // Extract it to the home directory (creates google-cloud-sdk folder)
+                // Using tar directly avoids running an external install script
+                sh 'tar -xzf google-cloud-sdk-linux-x86_64.tar.gz -C $HOME'
+                // Optional: Run the installer script for path updates etc., if needed, but often just extracting is enough
+                // sh "${env.GCLOUD_INSTALL_DIR}/install.sh --quiet --path-update true --usage-reporting false"
+                // Verify installation by checking the version (uses the full path)
+                sh "${env.GCLOUD_PATH}/gcloud --version"
+                // Clean up the downloaded archive
+                sh 'rm google-cloud-sdk-linux-x86_64.tar.gz'
+            }
+        }
+        // --- END NEW STAGE ---
+
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image: ${env.FULL_IMAGE_NAME}"
                 // Authenticate Docker with Google Artifact Registry
                 withCredentials([file(credentialsId: googleCredentialsId, variable: 'GCLOUD_KEY_FILE')]) {
-                    sh 'gcloud auth activate-service-account --key-file=${GCLOUD_KEY_FILE}'
-                    sh 'gcloud auth configure-docker ${dockerRegistry} --quiet'
+                    sh '${GCLOUD_PATH}/gcloud auth activate-service-account --key-file=$GCLOUD_KEY_FILE'
+                    sh '${GCLOUD_PATH}/gcloud auth configure-docker ${dockerRegistry} --quiet'
                 }
                 // Build the image
                 sh "docker build -t ${env.FULL_IMAGE_NAME} ."
@@ -71,7 +92,7 @@ pipeline {
                     // Clean up local docker image after push (optional)
                     sh "docker rmi ${env.FULL_IMAGE_NAME} || true"
                     // Revoke gcloud credentials (good practice)
-                    sh "gcloud auth revoke --all || true"
+                    sh "${GCLOUD_PATH}/gcloud auth revoke --all || true"
                 }
             }
         }
