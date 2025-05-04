@@ -25,7 +25,7 @@ pipeline {
         FULL_IMAGE_NAME = "${imageName}:${IMAGE_TAG}"
         // Ensure gcloud doesn't prompt for input
         CLOUDSDK_CORE_DISABLE_PROMPTS = '1'
-        MVN_HOME = tool mavenToolName
+        //MVN_HOME = tool mavenToolName
     }
 
     stages {
