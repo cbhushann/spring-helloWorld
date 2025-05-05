@@ -10,8 +10,8 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: kubectl
-    image: google/cloud-sdk:slim
+  - name: gcloud-kubectl  # Renamed container for clarity (optional)
+    image: google/cloud-sdk:latest  # MODIFIED: Use the full image which includes kubectl
     command:
     - cat
     tty: true
@@ -40,9 +40,14 @@ spec:
         stage('Deploy to Kubernetes') {
             steps {
                 // Run kubectl commands inside the specified container
-                container('kubectl') {
+                // MODIFIED: Use the potentially renamed container name if you changed it above
+                container('gcloud-kubectl') {
                     script {
                         echo "Applying Kubernetes deployment manifest ${env.YAML_PATH} to namespace ${env.NAMESPACE}..."
+
+                        // Verify kubectl is now available (optional check)
+                        sh "kubectl version --client"
+
                         // Apply the deployment configuration
                         // Kubectl should automatically use the service account credentials
                         // provided by the Jenkins Kubernetes plugin / Workload Identity
@@ -62,7 +67,7 @@ spec:
         /*
         stage('Verify Service') {
             steps {
-                container('kubectl') {
+                container('gcloud-kubectl') { // MODIFIED: Use the potentially renamed container name
                     // Add steps to check if the service is accessible, pods are healthy etc.
                     echo "Verifying deployment..."
                     sh "kubectl get pods -l app=hello-world -n ${env.NAMESPACE}"
