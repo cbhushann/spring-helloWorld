@@ -17,9 +17,7 @@ def kubernetesNamespace = 'default' // Change if deploying to a different namesp
 // --- End Configuration ---
 
 pipeline {
-    agent {
-              label 'docker-enabled'
-    }
+    agent any
 
     environment {
         // Use build number for unique image tags instead of 'latest'
