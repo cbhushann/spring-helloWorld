@@ -77,27 +77,37 @@ pipeline {
         }
         // --- END NEW STAGE ---
 
-        stage('Build and Push Image with Kaniko') {
+        stage('Build Docker Image') {
             steps {
-                container('kaniko') {
-                    withCredentials([file(credentialsId: googleCredentialsId, variable: 'GCLOUD_KEY_FILE')]) {
-                        sh '''
-                            echo "Setting up Kaniko secret..."
-                            mkdir -p /kaniko/.docker
-                            cat $GCLOUD_KEY_FILE > /kaniko/.docker/config.json
-
-                            echo "Building and pushing image with Kaniko..."
-                            /kaniko/executor \
-                              --context `pwd` \
-                              --dockerfile `pwd`/Dockerfile \
-                              --destination=${FULL_IMAGE_NAME} \
-                              --verbosity=info
-                        '''
-                    }
+                echo "Building Docker image: ${env.FULL_IMAGE_NAME}"
+                // Authenticate Docker with Google Artifact Registry
+                withCredentials([file(credentialsId: googleCredentialsId, variable: 'GCLOUD_KEY_FILE')]) {
+                    sh '${GCLOUD_PATH}/gcloud auth activate-service-account --key-file=$GCLOUD_KEY_FILE'
+                    sh '''
+                        export PATH="${GCLOUD_PATH}:$PATH"
+                        ${GCLOUD_PATH}/gcloud auth configure-docker ${dockerRegistry} --quiet
+                    '''
                 }
+                // Build the image
+                sh "docker build -t ${env.FULL_IMAGE_NAME} ."
             }
         }
 
+        stage('Push Docker Image') {
+            steps {
+                echo "Pushing Docker image: ${env.FULL_IMAGE_NAME}"
+                // Authentication should still be valid from the build stage
+                sh "docker push ${env.FULL_IMAGE_NAME}"
+            }
+            post {
+                always {
+                    // Clean up local docker image after push (optional)
+                    sh "docker rmi ${env.FULL_IMAGE_NAME} || true"
+                    // Revoke gcloud credentials (good practice)
+                    sh "${GCLOUD_PATH}/gcloud auth revoke --all || true"
+                }
+            }
+        }
 
         stage('Deploy to Kubernetes') {
             steps {
