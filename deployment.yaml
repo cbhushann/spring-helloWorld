@@ -15,6 +15,7 @@ spec:
       serviceAccountName: jenkins-controller
       containers:
         - name: hello-world-container
-          image: us-central1-docker.pkg.dev/onyx-codex-274605/hello-world-repo/hello-world:latest # Replace with your image
+          image: kk1registry.azurecr.io/hello-world:latest
+#          image: us-central1-docker.pkg.dev/onyx-codex-274605/hello-world-repo/hello-world:latest # Replace with your image
           ports:
             - containerPort: 8080

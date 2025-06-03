@@ -1,97 +1,65 @@
-// Jenkinsfile
-
 pipeline {
-    // Define an agent that runs inside a Kubernetes pod
-    agent {
-        kubernetes {
-            // Define the Pod template
-            yaml '''
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: gcloud-kubectl  # Renamed container for clarity (optional)
-    image: google/cloud-sdk:latest  # MODIFIED: Use the full image which includes kubectl
-    command:
-    - cat
-    tty: true
-'''
-            // Optional: Specify the cloud configuration if you have multiple Kubernetes clouds configured in Jenkins
-            // cloud 'kubernetes'
-        }
-    }
+    agent any
 
     environment {
-        // Define environment variables
-        NAMESPACE = 'default' // CHANGE if deploying to a different namespace
-        DEPLOYMENT_NAME = 'hello-world-deployment' // Matches metadata.name in deployment.yaml
-        YAML_PATH = 'deployment.yaml' // Path to the deployment file in the workspace
+        ACR_NAME = 'kk1registry'
+        ACR_LOGIN_SERVER = "${ACR_NAME}.azurecr.io"
+        IMAGE_NAME = 'hello-world'
+        IMAGE_TAG = 'latest'
+        AKS_CLUSTER = 'kk1'
+        AKS_RESOURCE_GROUP = 'kk1_group' // Replace with your resource group
+        YAML_PATH = 'deployment.yaml'
+        NAMESPACE = 'helloworld'
+        DEPLOYMENT_NAME = 'hello-world-deployment'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Get the source code from SCM
-                echo 'Checking out source code...'
                 checkout scm
             }
         }
-
-        stage('Deploy to Kubernetes') {
+        stage('Build Docker Image') {
             steps {
-                // Run kubectl commands inside the specified container
-                // MODIFIED: Use the potentially renamed container name if you changed it above
-                container('gcloud-kubectl') {
-                    script {
-                        echo "Applying Kubernetes deployment manifest ${env.YAML_PATH} to namespace ${env.NAMESPACE}..."
-
-                        // Verify kubectl is now available (optional check)
-                        sh "kubectl version --client"
-
-                        // Apply the deployment configuration
-                        // Kubectl should automatically use the service account credentials
-                        // provided by the Jenkins Kubernetes plugin / Workload Identity
-                        sh "kubectl apply -f ${env.YAML_PATH} -n ${env.NAMESPACE}"
-
-                        // Optional: Wait for the rollout to complete and check status
-                        echo "Waiting for deployment ${env.DEPLOYMENT_NAME} rollout to complete..."
-                        sh "kubectl rollout status deployment/${env.DEPLOYMENT_NAME} -n ${env.NAMESPACE} --timeout=5m" // 5 minute timeout
-
-                        echo "Deployment successful!"
-                    }
+                sh "docker build -t ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+        stage('Login to Azure') {
+            steps {
+                withCredentials([azureServicePrincipal('AZURE_CREDENTIALS_ID')]) {
+                    sh '''
+                        az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+                        az acr login --name $ACR_NAME
+                    '''
                 }
             }
         }
-
-        // Optional: Add more stages for testing, cleanup, notifications etc.
-        /*
-        stage('Verify Service') {
+        stage('Push to ACR') {
             steps {
-                container('gcloud-kubectl') { // MODIFIED: Use the potentially renamed container name
-                    // Add steps to check if the service is accessible, pods are healthy etc.
-                    echo "Verifying deployment..."
-                    sh "kubectl get pods -l app=hello-world -n ${env.NAMESPACE}"
-                    // Add curl commands or other checks if a Service is also defined
-                }
+                sh "docker push ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
-        */
+        stage('AKS Credentials') {
+            steps {
+                sh "az aks get-credentials --resource-group ${AKS_RESOURCE_GROUP} --name ${AKS_CLUSTER} --overwrite-existing"
+            }
+        }
+        stage('Deploy to AKS') {
+            steps {
+                sh "kubectl apply -f ${YAML_PATH} -n ${NAMESPACE}"
+                sh "kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE} --timeout=5m"
+            }
+        }
     }
-
     post {
-        // Actions to take after the pipeline runs, regardless of status
         always {
             echo 'Pipeline finished.'
-            // Clean up workspace?
-            // deleteDir()
         }
         success {
             echo 'Deployment Succeeded!'
-            // Send notification?
         }
         failure {
             echo 'Deployment Failed!'
-            // Send notification? Rollback?
         }
     }
 }
