@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'kk1registry.azurecr.io/jenkins-agent:gradle-docker-azure'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         ACR_NAME = 'kk1registry'
@@ -7,35 +12,32 @@ pipeline {
         IMAGE_NAME = 'hello-world'
         IMAGE_TAG = 'latest'
         AKS_CLUSTER = 'kk1'
-        AKS_RESOURCE_GROUP = 'kk1_group' // Replace with your resource group
+        AKS_RESOURCE_GROUP = 'kk1_group'
         YAML_PATH = 'deployment.yaml'
         NAMESPACE = 'helloworld'
         DEPLOYMENT_NAME = 'hello-world-deployment'
     }
 
     stages {
-        stage('Build') {
-            agent {
-                docker {
-                    image 'gradle:8.14.0-jdk21-alpine'
-                    reuseNode true
-                }
-            }
-            steps {
-                sh 'gradle -g gradle-user-home --version'
-            }
-        }
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
+
+        stage('Gradle Version Check') {
+            steps {
+                sh 'gradle --version'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
-        stage('Login to Azure') {
+
+        stage('Azure Login & ACR Login') {
             steps {
                 withCredentials([azureServicePrincipal('AZURE_CREDENTIALS_ID')]) {
                     sh '''
@@ -45,16 +47,19 @@ pipeline {
                 }
             }
         }
-        stage('Push to ACR') {
+
+        stage('Push Docker Image') {
             steps {
                 sh "docker push ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
-        stage('AKS Credentials') {
+
+        stage('Get AKS Credentials') {
             steps {
                 sh "az aks get-credentials --resource-group ${AKS_RESOURCE_GROUP} --name ${AKS_CLUSTER} --overwrite-existing"
             }
         }
+
         stage('Deploy to AKS') {
             steps {
                 sh "kubectl apply -f ${YAML_PATH} -n ${NAMESPACE}"
@@ -65,13 +70,13 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline finished.'
+            echo 'Pipeline completed.'
         }
         success {
-            echo 'Deployment Succeeded!'
+            echo '✅ Deployment succeeded!'
         }
         failure {
-            echo 'Deployment Failed!'
+            echo '❌ Deployment failed.'
         }
     }
 }

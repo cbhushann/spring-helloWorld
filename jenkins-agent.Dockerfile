@@ -1,21 +1,34 @@
 FROM debian:bullseye
 
+# Accept build arguments
 ARG KUBECTL_VERSION
 ARG GRADLE_VERSION=8.4
 
 USER root
 
-# Install dependencies
+# Install core dependencies
 RUN apt-get update && apt-get install -y \
-    curl unzip git docker.io apt-transport-https ca-certificates gnupg lsb-release software-properties-common
+    curl \
+    unzip \
+    git \
+    docker.io \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    python3-pip \
+    openjdk-17-jdk
 
-# Install Azure CLI
-RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
-    install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/ && \
-    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ bullseye main" > /etc/apt/sources.list.d/azure-cli.list && \
-    apt-get update && apt-get install -y azure-cli && rm microsoft.gpg
+# Install Azure CLI via pip (cross-platform safe)
+RUN pip3 install --upgrade pip && \
+    pip3 install azure-cli
 
-# Install kubectl (passed in via build arg)
+# Set JAVA_HOME so Gradle knows where Java is
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
+ENV PATH="${JAVA_HOME}/bin:$PATH"
+
+# Install kubectl
 RUN curl -LO https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
     rm kubectl
@@ -26,6 +39,7 @@ RUN curl -sSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}
     ln -s /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/bin/gradle && \
     rm gradle.zip
 
-# Create user
+# Create gradle user and assign Docker group
 RUN useradd -ms /bin/bash gradle && usermod -aG docker gradle
+
 USER gradle
