@@ -1,82 +1,60 @@
 pipeline {
-    agent {
-        docker {
-            image 'kk1registry.azurecr.io/jenkins-agent:gradle-docker-azure'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: kk1registry.azurecr.io/jenkins-agent:gradle-docker-azure
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+"""
+    }
+  }
+
+  environment {
+    IMAGE_NAME = "kk1registry.azurecr.io/spring-hello-world:latest"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
     }
 
-    environment {
-        ACR_NAME = 'kk1registry'
-        ACR_LOGIN_SERVER = "${ACR_NAME}.azurecr.io"
-        IMAGE_NAME = 'hello-world'
-        IMAGE_TAG = 'latest'
-        AKS_CLUSTER = 'kk1'
-        AKS_RESOURCE_GROUP = 'kk1_group'
-        YAML_PATH = 'deployment.yaml'
-        NAMESPACE = 'helloworld'
-        DEPLOYMENT_NAME = 'hello-world-deployment'
+    stage('Docker Build & Push') {
+      steps {
+        sh 'docker version'
+        sh 'docker build -t $IMAGE_NAME .'
+        sh 'docker push $IMAGE_NAME'
+      }
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Gradle Version Check') {
-            steps {
-                sh 'gradle --version'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh "docker build -t ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG} ."
-            }
-        }
-
-        stage('Azure Login & ACR Login') {
-            steps {
-                withCredentials([azureServicePrincipal('AZURE_CREDENTIALS_ID')]) {
-                    sh '''
-                        az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
-                        az acr login --name $ACR_NAME
-                    '''
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                sh "docker push ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_TAG}"
-            }
-        }
-
-        stage('Get AKS Credentials') {
-            steps {
-                sh "az aks get-credentials --resource-group ${AKS_RESOURCE_GROUP} --name ${AKS_CLUSTER} --overwrite-existing"
-            }
-        }
-
-        stage('Deploy to AKS') {
-            steps {
-                sh "kubectl apply -f ${YAML_PATH} -n ${NAMESPACE}"
-                sh "kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE} --timeout=5m"
-            }
-        }
+    stage('Deploy to AKS') {
+      steps {
+        sh 'kubectl version --client'
+        sh 'kubectl set image deployment/hello-deployment hello=$IMAGE_NAME -n helloworld'
+      }
     }
+  }
 
-    post {
-        always {
-            echo 'Pipeline completed.'
-        }
-        success {
-            echo '✅ Deployment succeeded!'
-        }
-        failure {
-            echo '❌ Deployment failed.'
-        }
+  post {
+    failure {
+      echo '❌ Deployment failed.'
     }
+    success {
+      echo '✅ Deployment succeeded.'
+    }
+  }
 }
