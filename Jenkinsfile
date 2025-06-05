@@ -54,7 +54,6 @@ spec:
       steps {
         container('kubectl') {
           sh """
-            kubectl config set-context --current --namespace=helloworld
             kubectl apply -f k8s/deployment.yaml
             kubectl apply -f k8s/service.yaml
           """
