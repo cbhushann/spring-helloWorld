@@ -21,6 +21,10 @@ spec:
   }
 
   environment {
+    AZ_CLIENT_ID = credentials('AZ_CLIENT_ID')
+    AZ_CLIENT_SECRET = credentials('AZ_CLIENT_SECRET')
+    AZ_TENANT_ID = credentials('AZ_TENANT_ID')
+    AZ_SUBSCRIPTION_ID = credentials('AZ_SUBSCRIPTION_ID')
     AZURE_REGISTRY = "kk1registry"
     ACR_TASK_NAME = "springhellotask"
     IMAGE_TAG = "latest"
