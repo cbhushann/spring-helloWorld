@@ -1,4 +1,3 @@
-# Updated Jenkinsfile (Jenkinsfile)
 pipeline {
   agent any
 
