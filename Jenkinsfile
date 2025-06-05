@@ -12,7 +12,7 @@ spec:
     - cat
     tty: true
   - name: kubectl
-    image: bitnami/kubectl:latest
+    image: bitnami/kubectl:1.27.6-debian-11-r4
     command: [ "sleep", "3600" ]
     tty: true
 """
