@@ -55,7 +55,9 @@ spec:
       steps {
         container('kubectl') {
           sh """
-            kubectl set image deployment/hello-world-deployment hello-world-container=${FULL_IMAGE} -n helloworld
+            kubectl config set-context --current --namespace=helloworld
+            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/service.yaml
           """
         }
       }
