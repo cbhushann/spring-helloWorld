@@ -1,50 +1,31 @@
+# Updated Jenkinsfile (Jenkinsfile)
 pipeline {
-  agent {
-    kubernetes {
-      yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: jnlp
-    image: kk1registry.azurecr.io/jenkins-agent:gradle-docker-azure
-    command:
-    - cat
-    tty: true
-    volumeMounts:
-    - name: docker-sock
-      mountPath: /var/run/docker.sock
-  volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
-"""
-    }
-  }
+  agent any
 
   environment {
-    IMAGE_NAME = "kk1registry.azurecr.io/spring-hello-world:latest"
+    AZURE_REGISTRY = "kk1registry"
+    ACR_TASK_NAME = "springhellotask"   // make sure this task exists
+    IMAGE_TAG = "latest"
+    IMAGE_NAME = "spring-hello-world"
+    FULL_IMAGE = "${AZURE_REGISTRY}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
   }
 
   stages {
-    stage('Checkout') {
+    stage('Trigger ACR Task Build') {
       steps {
-        checkout scm
-      }
-    }
-
-    stage('Docker Build & Push') {
-      steps {
-        sh 'docker version'
-        sh 'docker build -t $IMAGE_NAME .'
-        sh 'docker push $IMAGE_NAME'
+        sh """
+          az acr task run \
+            --name ${ACR_TASK_NAME} \
+            --registry ${AZURE_REGISTRY}
+        """
       }
     }
 
     stage('Deploy to AKS') {
       steps {
-        sh 'kubectl version --client'
-        sh 'kubectl set image deployment/hello-deployment hello=$IMAGE_NAME -n helloworld'
+        sh """
+          kubectl set image deployment/hello-world-deployment hello-world-container=${FULL_IMAGE} -n helloworld
+        """
       }
     }
   }
