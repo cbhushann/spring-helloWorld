@@ -1,9 +1,28 @@
 pipeline {
-  agent any
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: azcli
+    image: mcr.microsoft.com/azure-cli
+    command:
+    - cat
+    tty: true
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+    - cat
+    tty: true
+"""
+    }
+  }
 
   environment {
     AZURE_REGISTRY = "kk1registry"
-    ACR_TASK_NAME = "springhellotask"   // make sure this task exists
+    ACR_TASK_NAME = "springhellotask"
     IMAGE_TAG = "latest"
     IMAGE_NAME = "spring-hello-world"
     FULL_IMAGE = "${AZURE_REGISTRY}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
@@ -12,20 +31,23 @@ pipeline {
   stages {
     stage('Trigger ACR Task Build') {
       steps {
-        sh """
-          az acr task run \
-            --name ${ACR_TASK_NAME} \
-            --registry ${AZURE_REGISTRY}
-        """
+        container('azcli') {
+          sh """
+            az acr task run \
+              --name ${ACR_TASK_NAME} \
+              --registry ${AZURE_REGISTRY}
+          """
+        }
       }
     }
 
     stage('Deploy to AKS') {
       steps {
-        sh """
-          kubectl set image deployment/hello-world-deployment hello-world-container=${FULL_IMAGE} -n helloworld
-          kubectl rollout status deployment/hello-world-deployment -n helloworld
-        """
+        container('kubectl') {
+          sh """
+            kubectl set image deployment/hello-world-deployment hello-world-container=${FULL_IMAGE} -n helloworld
+          """
+        }
       }
     }
   }
