@@ -14,7 +14,7 @@ spec:
       labels:
         app: hello-world
     spec:
-      serviceAccountName: jenkins-controller
+      #serviceAccountName: jenkins-controller
       containers:
         - name: hello-world-container
           image: kk1registry.azurecr.io/spring-hello-world:latest
