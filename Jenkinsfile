@@ -37,6 +37,12 @@ spec:
       steps {
         container('azcli') {
           sh """
+            az login --service-principal \
+                --username $AZ_CLIENT_ID \
+                --password $AZ_CLIENT_SECRET \
+                --tenant $AZ_TENANT_ID
+
+            az account set --subscription $AZ_SUBSCRIPTION_ID
             az acr task run \
               --name ${ACR_TASK_NAME} \
               --registry ${AZURE_REGISTRY}
