@@ -25,6 +25,7 @@ pipeline {
       steps {
         sh """
           kubectl set image deployment/hello-world-deployment hello-world-container=${FULL_IMAGE} -n helloworld
+          kubectl rollout status deployment/hello-world-deployment -n helloworld
         """
       }
     }
