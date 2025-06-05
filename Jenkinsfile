@@ -12,8 +12,11 @@ spec:
     - cat
     tty: true
   - name: kubectl
-    image: lachlanevenson/kubectl:v1.27.6
-    command: [ "cat" ]
+    image: bitnami/kubectl:1.27
+    command:
+        - /bin/bash
+        - -c
+        - "sleep 3600"
     tty: true
 """
     }
