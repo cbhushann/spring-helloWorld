@@ -1,63 +1,19 @@
 pipeline {
-  agent {
-    kubernetes {
-      yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: azcli
-    image: mcr.microsoft.com/azure-cli
-    command:
-    - cat
-    tty: true
-  - name: kubectl
-    image: lachlanevenson/k8s-kubectl:v1.25.4
-    command: ["cat"]
-    tty: true
-"""
-    }
-  }
-
-  environment {
-    AZ_CLIENT_ID = credentials('AZ_CLIENT_ID')
-    AZ_CLIENT_SECRET = credentials('AZ_CLIENT_SECRET')
-    AZ_TENANT_ID = credentials('AZ_TENANT_ID')
-    AZ_SUBSCRIPTION_ID = credentials('AZ_SUBSCRIPTION_ID')
-    AZURE_REGISTRY = "kk1registry"
-    ACR_TASK_NAME = "springhellotask"
-    IMAGE_TAG = "latest"
-    IMAGE_NAME = "spring-hello-world"
-    FULL_IMAGE = "${AZURE_REGISTRY}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
-  }
+  agent any
 
   stages {
-    stage('Trigger ACR Task Build') {
+    stage('Build Docker Image') {
       steps {
-        container('azcli') {
-          sh """
-            az login --service-principal \
-                --username $AZ_CLIENT_ID \
-                --password $AZ_CLIENT_SECRET \
-                --tenant $AZ_TENANT_ID
-
-            az account set --subscription $AZ_SUBSCRIPTION_ID
-            az acr task run \
-              --name ${ACR_TASK_NAME} \
-              --registry ${AZURE_REGISTRY}
-          """
-        }
+        sh 'eval $(minikube docker-env) && docker build -t spring-hello-world:latest .'
       }
     }
 
-    stage('Deploy to AKS') {
+    stage('Deploy to Minikube') {
       steps {
-        container('kubectl') {
-          sh """
-            kubectl apply -f k8s/deployment.yaml
-            kubectl apply -f k8s/service.yaml
-          """
-        }
+        sh '''
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+        '''
       }
     }
   }
@@ -67,7 +23,7 @@ spec:
       echo '❌ Deployment failed.'
     }
     success {
-      echo '✅ Deployment succeeded.'
+      echo '✅ Deployment succeeded on Minikube.'
     }
   }
 }
