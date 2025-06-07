@@ -47,6 +47,17 @@ tasks.withType(Checkstyle).configureEach {
 	}
 }
 
+tasks.test {
+	useJUnitPlatform()
+	testLogging {
+		events "passed", "skipped", "failed"
+	}
+	reports {
+		junitXml.required = true
+		html.required = true
+	}
+}
+
 // JUnit test report configuration
 test {
 	useJUnitPlatform() // If you are using JUnit 5
