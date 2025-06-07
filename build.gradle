@@ -79,10 +79,10 @@ tasks.withType(SpotBugsTask).configureEach {
 	}
 }
 
-tasks.withType(JavaCompile).configureEach {
-	sourceCompatibility = '17'
-	targetCompatibility = '17'
-}
+//tasks.withType(JavaCompile).configureEach {
+//	sourceCompatibility = '17'
+//	targetCompatibility = '17'
+//}
 
 dependencyCheck {
 	failBuildOnCVSS = 7.0
