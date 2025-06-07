@@ -1,4 +1,3 @@
-# Updated Kubernetes Deployment (hello-world-deployment.yaml)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,9 +13,9 @@ spec:
       labels:
         app: hello-world
     spec:
-      #serviceAccountName: jenkins-controller
       containers:
         - name: hello-world-container
-          image: spring-hello-world:latest
+          image: localhost:5000/spring-hello-world:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
