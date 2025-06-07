@@ -11,9 +11,7 @@ pipeline {
   stages {
     stage('Build Docker Image') {
       steps {
-        sh """
-          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-        """
+        sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
       }
     }
 
@@ -35,45 +33,69 @@ pipeline {
       }
     }
 
+    stage('Code Coverage - Jacoco') {
+      steps {
+        sh './gradlew jacocoTestReport'
+      }
+    }
+
+    stage('Static Analysis - SpotBugs') {
+      steps {
+        sh './gradlew spotbugsMain'
+      }
+    }
+
+    stage('Security Scan - Trivy') {
+      steps {
+        sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${FULL_IMAGE} || true'
+      }
+    }
+
     stage('Tag and Push to Local Registry') {
       steps {
-        sh """
-          docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${FULL_IMAGE}
-          docker push ${FULL_IMAGE}
-        """
+        sh 'docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${FULL_IMAGE}'
+        sh 'docker push ${FULL_IMAGE}'
       }
     }
 
     stage('Deploy to Minikube') {
       steps {
-        sh """
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-        """
+        sh 'kubectl apply -f k8s/deployment.yaml'
+        sh 'kubectl apply -f k8s/service.yaml'
       }
     }
   }
 
-    post {
-      failure {
-          echo '❌ Build or Deployment failed.'
-        }
-      success {
-          echo '✅ App deployed to Minikube successfully.'
-        }
-      always {
-        archiveArtifacts artifacts: 'build/reports/**/*.html', allowEmptyArchive: true
-        junit 'build/test-results/test/*.xml'
-        publishHTML(target: [
-          reportDir: 'build/reports/checkstyle',
-          reportFiles: 'checkstyle.html',
-          reportName: 'Checkstyle Report'
-        ])
-        publishHTML(target: [
-          reportDir: 'build/reports/tests/test',
-          reportFiles: 'index.html',
-          reportName: 'Test Report'
-        ])
-      }
+  post {
+    always {
+      archiveArtifacts artifacts: 'build/reports/**/*.html', allowEmptyArchive: true
+      junit 'build/test-results/test/*.xml'
+      publishHTML(target: [
+        reportDir: 'build/reports/checkstyle',
+        reportFiles: 'checkstyle.html',
+        reportName: 'Checkstyle Report'
+      ])
+      publishHTML(target: [
+        reportDir: 'build/reports/tests/test',
+        reportFiles: 'index.html',
+        reportName: 'Test Report'
+      ])
+      publishHTML(target: [
+        reportDir: 'build/reports/jacoco/test/html',
+        reportFiles: 'index.html',
+        reportName: 'Jacoco Coverage Report'
+      ])
+      publishHTML(target: [
+        reportDir: 'build/reports/spotbugs/main',
+        reportFiles: 'spotbugs.html',
+        reportName: 'SpotBugs Report'
+      ])
     }
+    failure {
+      echo '❌ Build or Deployment failed.'
+    }
+    success {
+      echo '✅ App deployed to Minikube successfully.'
+    }
+  }
 }
