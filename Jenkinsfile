@@ -23,6 +23,12 @@ pipeline {
       }
     }
 
+    stage('Lint Code') {
+      steps {
+        sh './gradlew checkstyleMain'
+      }
+    }
+
     stage('Tag and Push to Local Registry') {
       steps {
         sh """
