@@ -29,6 +29,12 @@ pipeline {
       }
     }
 
+    stage('Run Tests') {
+      steps {
+        sh './gradlew test'
+      }
+    }
+
     stage('Tag and Push to Local Registry') {
       steps {
         sh """
