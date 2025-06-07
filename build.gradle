@@ -63,6 +63,8 @@ jacocoTestReport {
 	}
 }
 
+apply plugin: 'com.github.spotbugs'
+
 spotbugs {
 	toolVersion = '4.7.3'
 	effort = 'max'
@@ -73,7 +75,13 @@ tasks.withType(SpotBugsTask).configureEach {
 	reports {
 		html.required = true
 		xml.required = false
+		html.outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.html")
 	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	sourceCompatibility = '17'
+	targetCompatibility = '17'
 }
 
 dependencyCheck {
