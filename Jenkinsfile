@@ -18,7 +18,7 @@ pipeline {
     stage('Code Scan - SonarQube') {
       steps {
         withSonarQubeEnv('My Sonar Server') {
-        sh './gradlew sonarqube -Dsonar.projectKey=spring-hello-world -Dsonar.host.url=http://localhost:9000 -Dsonar.login=squ_70ff1aa72a0bfca8f6436f7aa36c30ae5890300a'
+          sh './gradlew sonarqube'
         }
       }
     }
