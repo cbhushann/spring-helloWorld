@@ -26,6 +26,7 @@ repositories {
 checkstyle {
 	toolVersion = '10.12.1'
 	configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+	showViolations = true
 }
 
 dependencies {
@@ -36,4 +37,24 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Enable Checkstyle HTML + XML reports
+tasks.withType(Checkstyle).configureEach {
+	reports {
+		xml.required = true
+		html.required = true
+	}
+}
+
+// JUnit test report configuration
+test {
+	useJUnitPlatform() // If you are using JUnit 5
+	testLogging {
+		events "passed", "skipped", "failed"
+	}
+	reports {
+		junitXml.required = true
+		html.required = true
+	}
 }

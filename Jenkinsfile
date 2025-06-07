@@ -48,6 +48,23 @@ pipeline {
     }
   }
 
+    post {
+      always {
+        archiveArtifacts artifacts: 'build/reports/**/*.html', allowEmptyArchive: true
+        junit 'build/test-results/test/*.xml'
+        publishHTML(target: [
+          reportDir: 'build/reports/checkstyle',
+          reportFiles: 'checkstyle.html',
+          reportName: 'Checkstyle Report'
+        ])
+        publishHTML(target: [
+          reportDir: 'build/reports/tests/test',
+          reportFiles: 'index.html',
+          reportName: 'Test Report'
+        ])
+      }
+    }
+
   post {
     failure {
       echo '❌ Build or Deployment failed.'
