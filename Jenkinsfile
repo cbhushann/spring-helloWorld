@@ -49,6 +49,12 @@ pipeline {
   }
 
     post {
+      failure {
+          echo '❌ Build or Deployment failed.'
+        }
+      success {
+          echo '✅ App deployed to Minikube successfully.'
+        }
       always {
         archiveArtifacts artifacts: 'build/reports/**/*.html', allowEmptyArchive: true
         junit 'build/test-results/test/*.xml'
@@ -64,13 +70,4 @@ pipeline {
         ])
       }
     }
-
-  post {
-    failure {
-      echo '❌ Build or Deployment failed.'
-    }
-    success {
-      echo '✅ App deployed to Minikube successfully.'
-    }
-  }
 }
