@@ -1,21 +1,46 @@
 pipeline {
   agent any
 
+  environment {
+    IMAGE_NAME = "spring-hello-world"
+    IMAGE_TAG = "latest"
+    LOCAL_REGISTRY = "localhost:5000"
+    FULL_IMAGE = "${LOCAL_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+  }
+
   stages {
-    stage('Build inside Minikube Docker') {
+    stage('Build Docker Image') {
       steps {
-        script {
-          sh 'eval $(minikube docker-env)'
-          sh 'docker build -t spring-hello-world:latest .'
-        }
+        sh """
+          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+        """
+      }
+    }
+
+    stage('Tag and Push to Local Registry') {
+      steps {
+        sh """
+          docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${FULL_IMAGE}
+          docker push ${FULL_IMAGE}
+        """
       }
     }
 
     stage('Deploy to Minikube') {
       steps {
-        sh 'kubectl apply -f k8s/deployment.yaml'
-        sh 'kubectl apply -f k8s/service.yaml'
+        sh """
+          kubectl apply -f k8s/deployment.yaml
+        """
       }
+    }
+  }
+
+  post {
+    failure {
+      echo '❌ Build or Deployment failed.'
+    }
+    success {
+      echo '✅ App deployed to Minikube successfully.'
     }
   }
 }
