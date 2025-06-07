@@ -10,6 +10,7 @@ COPY settings.gradle .
 
 RUN ./gradlew dependencies
 
+COPY config ./config
 COPY src ./src
 
 RUN ./gradlew build -x test
