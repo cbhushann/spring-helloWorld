@@ -6,6 +6,9 @@ pipeline {
     IMAGE_TAG = "latest"
     LOCAL_REGISTRY = "localhost:5000"
     FULL_IMAGE = "${LOCAL_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+    DEPLOYMENT_TEMPLATE = "k8s/deployment-template.yaml"
+    ACTIVE_COLOR = ""
+    NEW_COLOR = ""
   }
 
   stages {
@@ -58,10 +61,32 @@ pipeline {
       }
     }
 
+    stage('Prepare Blue-Green Deployment') {
+      steps {
+        script {
+          def currentSelector = sh(script: "kubectl get svc hello-service -n helloworld -o=jsonpath='{.spec.selector.version}'", returnStdout: true).trim()
+          env.ACTIVE_COLOR = currentSelector ?: "blue" // fallback if service doesn't exist
+          env.NEW_COLOR = (env.ACTIVE_COLOR == "blue") ? "green" : "blue"
+
+          echo "Current Active: ${env.ACTIVE_COLOR}, Deploying: ${env.NEW_COLOR}"
+
+          sh """
+            export IMAGE=${FULL_IMAGE}
+            export COLOR=${NEW_COLOR}
+            envsubst < ${DEPLOYMENT_TEMPLATE} > k8s/deployment.yaml
+          """
+        }
+      }
+    }
+
     stage('Deploy to Minikube') {
       steps {
         sh 'kubectl apply -f k8s/deployment.yaml'
         sh 'kubectl apply -f k8s/service.yaml'
+        sh """
+          kubectl patch svc hello-service -n helloworld \
+            -p '{"spec":{"selector":{"app":"hello-world", "version":"${NEW_COLOR}"}}}'
+        """
       }
     }
   }

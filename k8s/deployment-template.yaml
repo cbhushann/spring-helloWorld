@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-${COLOR}
+  namespace: helloworld
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-world
+      version: ${COLOR}
+  template:
+    metadata:
+      labels:
+        app: hello-world
+        version: ${COLOR}
+    spec:
+      containers:
+        - name: hello-world
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
