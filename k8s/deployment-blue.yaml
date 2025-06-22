@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world-deployment
+  namespace: helloworld
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-world
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: hello-world
+        version: blue
+    spec:
+      containers:
+        - name: hello-world
+          image: spring-hello-world:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080

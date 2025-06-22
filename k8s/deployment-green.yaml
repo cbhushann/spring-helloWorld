@@ -8,10 +8,12 @@ spec:
   selector:
     matchLabels:
       app: hello-world
+      version: green
   template:
     metadata:
       labels:
         app: hello-world
+        version: green
     spec:
       containers:
         - name: hello-world
