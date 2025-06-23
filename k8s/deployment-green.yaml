@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: hello-world
-          image: spring-hello-world:latest
+          image: localhost:5000/spring-hello-world:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
