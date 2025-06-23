@@ -66,7 +66,7 @@ pipeline {
     stage('Prepare Blue-Green Deployment') {
       steps {
         script {
-          def currentSelector = sh(script: "kubectl get svc hello-service -n helloworld -o=jsonpath='{.spec.selector.version}'", returnStdout: true).trim()
+          def currentSelector = sh(script: "kubectl get svc hello-world-service -n helloworld -o=jsonpath='{.spec.selector.version}'", returnStdout: true).trim()
           env.ACTIVE_COLOR = currentSelector ?: "blue" // fallback if service doesn't exist
           env.NEW_COLOR = (env.ACTIVE_COLOR == "blue") ? "green" : "blue"
 
